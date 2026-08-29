@@ -21,3 +21,13 @@ output "cluster_name" {
   description = "Name of the cluster"
   value       = resource.google_container_cluster.my_cluster.name
 }
+
+output "workload_identity_provider" {
+  description = "Full resource name of the WIF provider; paste into the GitHub Actions workflow's auth step"
+  value       = google_iam_workload_identity_pool_provider.github_provider.name
+}
+
+output "deploy_service_account_email" {
+  description = "Service account GitHub Actions impersonates to deploy; paste into the workflow's auth step"
+  value       = google_service_account.github_action_runner.email
+}
