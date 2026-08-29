@@ -25,7 +25,6 @@ locals {
     "iamcredentials.googleapis.com"
   ]
   memorystore_apis = ["redis.googleapis.com"]
-  cluster_name     = google_container_cluster.my_cluster.name
 }
 
 # Enable Google Cloud APIs
@@ -66,44 +65,5 @@ resource "google_container_cluster" "my_cluster" {
     google_compute_subnetwork.subnet,
     google_compute_firewall.allow_internal,
     google_compute_router_nat.nat,
-  ]
-}
-
-# Get credentials for cluster
-resource "null_resource" "get_credentials" {
-  provisioner "local-exec" {
-    interpreter = ["bash", "-exc"]
-    command     = "gcloud container clusters get-credentials ${local.cluster_name} --zone=${var.region} --project=${var.gcp_project_id}"
-  }
-
-  depends_on = [
-    google_container_cluster.my_cluster
-  ]
-}
-
-# Apply YAML kubernetes-manifest configurations
-resource "null_resource" "apply_deployment" {
-  provisioner "local-exec" {
-    interpreter = ["bash", "-exc"]
-    command     = "kubectl apply -k ${var.filepath_manifest} -n ${var.namespace}"
-  }
-
-  depends_on = [
-    null_resource.get_credentials
-  ]
-}
-
-# Wait condition for all Pods to be ready before finishing
-resource "null_resource" "wait_conditions" {
-  provisioner "local-exec" {
-    interpreter = ["bash", "-exc"]
-    command     = <<-EOT
-    kubectl wait --for=condition=AVAILABLE apiservice/v1beta1.metrics.k8s.io --timeout=180s
-    kubectl wait --for=condition=ready pods --all -n ${var.namespace} --timeout=280s
-    EOT
-  }
-
-  depends_on = [
-    resource.null_resource.apply_deployment
   ]
 }
