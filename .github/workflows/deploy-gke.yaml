@@ -1,0 +1,85 @@
+# Copyright 2026 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+name: "Deploy to GKE"
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'kustomize/**'
+      - '.github/workflows/deploy-gke.yaml'
+  workflow_dispatch: {}
+
+concurrency:
+  group: deploy-gke
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  PROJECT_ID: "hl2-gcpp-ccoe-ge-h-itrace-1647"
+  REGION: "us-central1"
+  AR_REPO: "us-central1-docker.pkg.dev/hl2-gcpp-ccoe-ge-h-itrace-1647/microservices-demo"
+  WORKLOAD_IDENTITY_PROVIDER: "projects/PROJECT_NUMBER/locations/global/workloadIdentityPools/github-actions-pool/providers/github-provider" # TODO: fill in after terraform apply
+  DEPLOY_SERVICE_ACCOUNT: "github-action-runner@hl2-gcpp-ccoe-ge-h-itrace-1647.iam.gserviceaccount.com" # TODO: confirm after terraform apply
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        service:
+          - name: adservice
+            context: src/adservice
+          - name: cartservice
+            context: src/cartservice/src
+          - name: checkoutservice
+            context: src/checkoutservice
+          - name: currencyservice
+            context: src/currencyservice
+          - name: emailservice
+            context: src/emailservice
+          - name: frontend
+            context: src/frontend
+          - name: loadgenerator
+            context: src/loadgenerator
+          - name: paymentservice
+            context: src/paymentservice
+          - name: productcatalogservice
+            context: src/productcatalogservice
+          - name: recommendationservice
+            context: src/recommendationservice
+          - name: shippingservice
+            context: src/shippingservice
+    steps:
+      - uses: actions/checkout@v7
+      - id: auth
+        uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: ${{ env.WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ env.DEPLOY_SERVICE_ACCOUNT }}
+      - uses: google-github-actions/setup-gcloud@v2
+      - run: gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet
+      - uses: docker/setup-buildx-action@v4
+      - uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.service.context }}
+          push: true
+          tags: ${{ env.AR_REPO }}/${{ matrix.service.name }}:${{ github.sha }}
+          cache-from: type=gha,scope=${{ matrix.service.name }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.service.name }}
