@@ -45,3 +45,15 @@ variable "memorystore" {
   type        = bool
   description = "If true, Online Boutique's in-cluster Redis cache will be replaced with a Google Cloud Memorystore Redis cache"
 }
+
+variable "network" {
+  type        = string
+  description = "Name of the dedicated VPC network to create for the GKE cluster (this project has no default network)"
+  default     = "online-boutique-vpc"
+}
+
+variable "subnetwork" {
+  type        = string
+  description = "Name of the dedicated subnetwork to create for the GKE cluster"
+  default     = "online-boutique-subnet"
+}

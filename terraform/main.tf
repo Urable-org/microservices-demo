@@ -42,11 +42,15 @@ resource "google_container_cluster" "my_cluster" {
   name     = var.name
   location = var.region
 
+  network    = google_compute_network.vpc.name
+  subnetwork = google_compute_subnetwork.subnet.name
+
   # Enable autopilot for this cluster
   enable_autopilot = true
 
-  # Set an empty ip_allocation_policy to allow autopilot cluster to spin up correctly
   ip_allocation_policy {
+    cluster_secondary_range_name  = "pods"
+    services_secondary_range_name = "services"
   }
 
   # Avoid setting deletion_protection to false
@@ -54,22 +58,23 @@ resource "google_container_cluster" "my_cluster" {
   # deletion_protection = false
 
   depends_on = [
-    module.enable_google_apis
+    module.enable_google_apis,
+    google_compute_subnetwork.subnet,
+    google_compute_firewall.allow_internal,
+    google_compute_router_nat.nat,
   ]
 }
 
 # Get credentials for cluster
-module "gcloud" {
-  source  = "terraform-google-modules/gcloud/google"
-  version = "~> 4.0"
+resource "null_resource" "get_credentials" {
+  provisioner "local-exec" {
+    interpreter = ["bash", "-exc"]
+    command     = "gcloud container clusters get-credentials ${local.cluster_name} --zone=${var.region} --project=${var.gcp_project_id}"
+  }
 
-  platform              = "linux"
-  additional_components = ["kubectl", "beta"]
-
-  create_cmd_entrypoint = "gcloud"
-  # Module does not support explicit dependency
-  # Enforce implicit dependency through use of local variable
-  create_cmd_body = "container clusters get-credentials ${local.cluster_name} --zone=${var.region} --project=${var.gcp_project_id}"
+  depends_on = [
+    google_container_cluster.my_cluster
+  ]
 }
 
 # Apply YAML kubernetes-manifest configurations
@@ -80,7 +85,7 @@ resource "null_resource" "apply_deployment" {
   }
 
   depends_on = [
-    module.gcloud
+    null_resource.get_credentials
   ]
 }
 
