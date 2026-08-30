@@ -16,6 +16,7 @@ package main
 
 import (
 	"context"
+	"math/rand"
 	"strings"
 	"time"
 
@@ -24,6 +25,12 @@ import (
 	healthpb "google.golang.org/grpc/health/grpc_health_v1"
 	"google.golang.org/grpc/status"
 )
+
+// shouldInjectFault reports whether a simulated failure should be returned
+// for this call, per the FAULT_ERROR_RATE env var (0 = disabled).
+func shouldInjectFault() bool {
+	return faultErrorRate > 0 && rand.Float64() < faultErrorRate
+}
 
 type productCatalog struct {
 	pb.UnimplementedProductCatalogServiceServer
@@ -38,14 +45,32 @@ func (p *productCatalog) Watch(req *healthpb.HealthCheckRequest, ws healthpb.Hea
 	return status.Errorf(codes.Unimplemented, "health check via Watch not implemented")
 }
 
-func (p *productCatalog) ListProducts(context.Context, *pb.Empty) (*pb.ListProductsResponse, error) {
+func (p *productCatalog) ListProducts(ctx context.Context, req *pb.Empty) (*pb.ListProductsResponse, error) {
+	start := time.Now()
+	statusLabel := "OK"
+	defer func() { recordRequest("ListProducts", statusLabel, time.Since(start)) }()
+
 	time.Sleep(extraLatency)
+
+	if shouldInjectFault() {
+		statusLabel = "Unavailable"
+		return nil, status.Errorf(codes.Unavailable, "productcatalogservice: simulated fault")
+	}
 
 	return &pb.ListProductsResponse{Products: p.parseCatalog()}, nil
 }
 
 func (p *productCatalog) GetProduct(ctx context.Context, req *pb.GetProductRequest) (*pb.Product, error) {
+	start := time.Now()
+	statusLabel := "OK"
+	defer func() { recordRequest("GetProduct", statusLabel, time.Since(start)) }()
+
 	time.Sleep(extraLatency)
+
+	if shouldInjectFault() {
+		statusLabel = "Unavailable"
+		return nil, status.Errorf(codes.Unavailable, "productcatalogservice: simulated fault")
+	}
 
 	catalog := p.parseCatalog()
 	for _, product := range catalog {
@@ -54,10 +79,14 @@ func (p *productCatalog) GetProduct(ctx context.Context, req *pb.GetProductReque
 		}
 	}
 
+	statusLabel = "NotFound"
 	return nil, status.Errorf(codes.NotFound, "no product with ID %s", req.Id)
 }
 
 func (p *productCatalog) SearchProducts(ctx context.Context, req *pb.SearchProductsRequest) (*pb.SearchProductsResponse, error) {
+	start := time.Now()
+	defer func() { recordRequest("SearchProducts", "OK", time.Since(start)) }()
+
 	time.Sleep(extraLatency)
 
 	var ps []*pb.Product

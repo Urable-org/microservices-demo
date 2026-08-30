@@ -21,6 +21,7 @@ import (
 	"net"
 	"os"
 	"os/signal"
+	"strconv"
 	"sync"
 	"syscall"
 	"time"
@@ -42,9 +43,10 @@ import (
 )
 
 var (
-	catalogMutex *sync.Mutex
-	log          *logrus.Logger
-	extraLatency time.Duration
+	catalogMutex   *sync.Mutex
+	log            *logrus.Logger
+	extraLatency   time.Duration
+	faultErrorRate float64
 
 	port = "3550"
 
@@ -95,6 +97,24 @@ func main() {
 	} else {
 		extraLatency = time.Duration(0)
 	}
+
+	// set injected fault error rate
+	if s := os.Getenv("FAULT_ERROR_RATE"); s != "" {
+		v, err := strconv.ParseFloat(s, 64)
+		if err != nil {
+			log.Fatalf("failed to parse FAULT_ERROR_RATE (%s) as float64: %+v", s, err)
+		}
+		faultErrorRate = v
+		log.Infof("fault error injection enabled (rate: %v)", faultErrorRate)
+	} else {
+		faultErrorRate = 0
+	}
+
+	metricsPort := "8081"
+	if s := os.Getenv("METRICS_PORT"); s != "" {
+		metricsPort = s
+	}
+	go startMetricsServer(metricsPort)
 
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGUSR1, syscall.SIGUSR2)

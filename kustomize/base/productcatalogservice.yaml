@@ -46,11 +46,15 @@ spec:
         image: us-central1-docker.pkg.dev/online-boutique-ci/microservices-demo/productcatalogservice:v0.10.6
         ports:
         - containerPort: 3550
+        - containerPort: 8081
+          name: metrics
         env:
         - name: PORT
           value: "3550"
         - name: DISABLE_PROFILER
           value: "1"
+        - name: METRICS_PORT
+          value: "8081"
         readinessProbe:
           grpc:
             port: 3550
@@ -79,8 +83,27 @@ spec:
   - name: grpc
     port: 3550
     targetPort: 3550
+  - name: metrics
+    port: 8081
+    targetPort: 8081
 ---
 apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: productcatalogservice
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: productcatalogservice
+  labels:
+    app: productcatalogservice
+    release: monitoring
+spec:
+  selector:
+    matchLabels:
+      app: productcatalogservice
+  endpoints:
+  - port: metrics
+    path: /metrics
+    interval: 30s
