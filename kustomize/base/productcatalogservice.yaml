@@ -55,10 +55,6 @@ spec:
           value: "1"
         - name: METRICS_PORT
           value: "8081"
-        - name: EXTRA_LATENCY
-          value: "2.5s"
-        - name: FAULT_ERROR_RATE
-          value: "0.25"
         readinessProbe:
           grpc:
             port: 3550
