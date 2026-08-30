@@ -99,6 +99,7 @@ jobs:
           install_components: 'gke-gcloud-auth-plugin'
       - run: gcloud container clusters get-credentials online-boutique --region ${{ env.REGION }} --project ${{ env.PROJECT_ID }}
       - name: Install kustomize
+        working-directory: /tmp
         run: |
           curl -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh" | bash
           sudo mv kustomize /usr/local/bin/kustomize
