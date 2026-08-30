@@ -34,8 +34,8 @@ env:
   PROJECT_ID: "hl2-gcpp-ccoe-ge-h-itrace-1647"
   REGION: "us-central1"
   AR_REPO: "us-central1-docker.pkg.dev/hl2-gcpp-ccoe-ge-h-itrace-1647/microservices-demo"
-  WORKLOAD_IDENTITY_PROVIDER: "projects/PROJECT_NUMBER/locations/global/workloadIdentityPools/github-actions-pool/providers/github-provider" # TODO: fill in after terraform apply
-  DEPLOY_SERVICE_ACCOUNT: "github-action-runner@hl2-gcpp-ccoe-ge-h-itrace-1647.iam.gserviceaccount.com" # TODO: confirm after terraform apply
+  WORKLOAD_IDENTITY_PROVIDER: "projects/133397162181/locations/global/workloadIdentityPools/github-actions-pool/providers/github-provider"
+  DEPLOY_SERVICE_ACCOUNT: "github-action-runner@hl2-gcpp-ccoe-ge-h-itrace-1647.iam.gserviceaccount.com"
 
 jobs:
   build:
