@@ -27,6 +27,8 @@ const (
 	avoidNoopCurrencyConversionRPC = false
 )
 
+// getCurrencies fetches the list of supported currency codes from the
+// currency service, using ctx's deadline to bound the outbound RPC.
 func (fe *frontendServer) getCurrencies(ctx context.Context) ([]string, error) {
 	currs, err := pb.NewCurrencyServiceClient(fe.currencySvcConn).
 		GetSupportedCurrencies(ctx, &pb.Empty{})
