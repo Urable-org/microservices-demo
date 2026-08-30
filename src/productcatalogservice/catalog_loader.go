@@ -30,6 +30,8 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
+// loadCatalog populates catalog from AlloyDB when ALLOYDB_CLUSTER_NAME is
+// set, otherwise falls back to reading the bundled products.json file.
 func loadCatalog(catalog *pb.ListProductsResponse) error {
 	catalogMutex.Lock()
 	defer catalogMutex.Unlock()
