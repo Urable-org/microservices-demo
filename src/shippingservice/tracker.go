@@ -17,6 +17,8 @@ package main
 import (
 	"fmt"
 	"math/rand"
+	"strconv"
+	"strings"
 )
 
 // CreateTrackingId generates a tracking ID.
@@ -38,10 +40,10 @@ func getRandomLetterCode() uint32 {
 
 // getRandomNumber generates a string representation of a number with the requested number of digits.
 func getRandomNumber(digits int) string {
-	str := ""
+	var sb strings.Builder
 	for i := 0; i < digits; i++ {
-		str = fmt.Sprintf("%s%d", str, rand.Intn(10))
+		sb.WriteString(strconv.Itoa(rand.Intn(10)))
 	}
 
-	return str
+	return sb.String()
 }
